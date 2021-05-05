@@ -4,7 +4,7 @@ The yet-to-be-implemented Fire Emblem DS Font Tool.
 
 ## File Specs
 
-The Fire Emblem DS font files, especially ``fonts/alpha`` and ``fonts/talk`` are weird.
+The Fire Emblem DS font files, ``fonts/alpha`` and ``fonts/talk``, are weird. There was not a documentation for that, so the author had to decipher for a few days and write a documentation for them.
 
 ### Alpha and Talk
 
@@ -17,7 +17,7 @@ The first byte indicates if the pixel to be written is transparent or not. A bit
 
 The following four bytes indicate the amount of transparent pixels or the colour of a pixel. For example, a half-byte ``0xF`` means sixteen (i.e. 0xF + 1) transparent pixels or a pixel coloured F (white), depending on a particular bit of the first byte.
 
-Note that the bits from the first byte should be read from the least-significant bit(bit 0), while the half-bytes with human-reading order: Let's see the next example.
+Note that the bits from the first byte should be read from the least-significant bit(bit 0), while the half-bytes should be with human-reading order: Let's see the next example.
 
 * Example Raw data: ``55 0C 5D AE FF``
 * The first byte in binary is ``01010101``.
@@ -33,6 +33,8 @@ Note that the bits from the first byte should be read from the least-significant
 When the binary is deciphered, the pixel is drawn by following order on 16-by-16 cells:
 * Pixels are drawn from the top row.
 * For each row, they are drawn in order of: ``7 6 5 4 3 2 1 0 F E D C B A 9 8``. In other words, split by half, left first; for each part, right first.
+
+The binary is read until 256 pixels are filled, so the size of each glyph may not be divisible by five bytes. For example, ``01 F0`` as the last block of the glyph data is valid, if, say, the first pixel coloured F is the last of 256 pixels.
 
 ##### Colour
 The colours are tones of reds. The below are approximations, except for zero.
