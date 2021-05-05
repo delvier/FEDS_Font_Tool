@@ -6,10 +6,11 @@ The Fire Emblem DS Font Tool, currently deciphering 4bpp fonts are implemented.
 
 ## File Specs
 
-The Fire Emblem DS font files, ``fonts/alpha`` and ``fonts/talk``, are weird. There was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
-
 ### Alpha and Talk
+The Fire Emblem DS font files, ``fonts/alpha`` and ``fonts/talk``, are weird. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
+
 #### Header
+From ``0x0+20`` to ``0x300+20``, there are pointers of lower bytes pointing the characters. From ``0x300+20``, each character consists of eight bytes, where the first two are the code point of a character, the next two are the width of a rendered glyph (though, the value cannot exceed 16), and the next four are the pointer to the (ciphered) glyph, all of which are stored in little endian. At the end of each same-lower-byte-group block, four bytes of null are placed as a separator. In the end after the glyph data (thus, footer?), there are pointers to every pointers.
 
 #### Glyph
 In short, each glyph is compressed (or, I would say, ciphered) using some sort of [Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding). The deciphered glyph is of 4bpp format.
