@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v5.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v5.0": {
+      "FEDS_Font_Tool/1.0.0": {
+        "runtime": {
+          "FEDS_Font_Tool.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "FEDS_Font_Tool/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

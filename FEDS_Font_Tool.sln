@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FEDS_Font_Tool", "FEDS_Font_Tool\FEDS_Font_Tool.csproj", "{3C6B7122-6EE4-4C1D-B978-F56799A6E722}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3C6B7122-6EE4-4C1D-B978-F56799A6E722}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C6B7122-6EE4-4C1D-B978-F56799A6E722}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C6B7122-6EE4-4C1D-B978-F56799A6E722}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C6B7122-6EE4-4C1D-B978-F56799A6E722}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AFE08D35-2C73-430A-BFC9-6208E69FC9DF}
+	EndGlobalSection
+EndGlobal

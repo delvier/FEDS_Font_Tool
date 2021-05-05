@@ -1,6 +1,8 @@
 # FEDS_Font_Tool
 
-The yet-to-be-implemented Fire Emblem DS Font Tool.
+The Fire Emblem DS Font Tool, currently deciphering 4bpp fonts are implemented.
+
+![fonts/alpha, deciphered](./Sample.png)
 
 ## File Specs
 
