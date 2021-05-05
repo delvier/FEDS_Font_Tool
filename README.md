@@ -2,7 +2,7 @@
 
 The Fire Emblem DS Font Tool, currently deciphering 4bpp fonts are implemented.
 
-![fonts/alpha, deciphered](./Sample.png)
+![fonts/alpha, deciphered](./Sample.PNG)
 
 ## File Specs
 
