@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -56,6 +57,21 @@ namespace FEDS_Font_Tool
         public static void ToWeirdFont(string path)
         {
             Console.WriteLine("This is currently not implemented. Thank you.");
+            string filename = Path.GetFileName(path);
+            string dirname = Path.GetDirectoryName(path);
+            byte[] filedata = File.ReadAllBytes(path);
+            uint glyph_size = 0x84;
+            List<byte[]> glyph_info = new List<byte[]>();
+            List<byte[]> glyphs = new List<byte[]>();
+            for (int i = 0; i < filedata.Length / glyph_size; i++)
+            {
+                byte[] each_glyph = (byte[])filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size);
+                glyph_info.Add((byte[])each_glyph.Take(4));
+                glyphs.Add(WeirdGlyphRecipher((byte[])each_glyph.Skip(4)));
+            }
+
+            // todo: how to reconstruct font file with reciphered glyphs?
+            
         }
         public static uint[] WeirdGlyphDecipher(byte[] filedata, uint pos)
         {
@@ -103,7 +119,85 @@ namespace FEDS_Font_Tool
             }
             return glyph;
         }
-        public static void interactive()
+        public static byte[] WeirdGlyphRecipher(byte[] glyph)
+        {
+            int counter = 0;
+            List<bool> transBits = new List<bool>();
+            List<int> ciphered = new List<int>();
+            List<byte> combined = new List<byte>();
+            byte[] fourbits = new byte[256];
+
+            // converting 32-bits to 4-bits
+            for (int i = 0; i < glyph.Length / 4; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    fourbits[i + 8 * j] = (byte)((glyph[i] >> (28 - 4 * j)) % 16);
+                }
+            }
+            for (int i = 0; i < 256; i++)
+            {
+                if (fourbits[i] == 0) // transparent case
+                {
+                    counter++;
+                    if (counter >= 16 || i >= 255) // fully counted
+                    {
+                        transBits.Add(true);
+                        ciphered.Add(counter - 1);
+                        counter = 0;
+                    }
+                } else
+                {
+                    if (i > 0) //not on initial position...
+                    {
+                        if (fourbits[i - 1] == 0) //... and the preceding pixel is transparent then
+                        {
+                            transBits.Add(true);
+                            ciphered.Add(counter - 1);
+                            counter = 0;
+                        }
+                    }
+                    transBits.Add(false);
+                    ciphered.Add(fourbits[i]);
+                }
+            }
+
+            while(transBits.Count % 8 != 0)
+            {
+                transBits.Add(false);
+            }
+
+            while (true)
+            {
+                if (combined.Count % 5 == 0)
+                {
+                    int i = combined.Count / 5;
+                    int bite = 0;
+                    for (int j = 0; j < 8; j++)
+                    {
+                        bite += (transBits[8 * i + j] ? 1 : 0) << j;
+                    }
+                    combined.Add((byte)bite);
+                } else
+                {
+                    int i = (combined.Count % 5 - 1) + (combined.Count / 5 * 4);
+                    if (2 * i >= ciphered.Count)
+                    {
+                        break;
+                    } else if (2 * i == ciphered.Count - 1)
+                    {
+                        int bite = ciphered[2 * i] * 16;
+                        combined.Add((byte)bite);
+                    } else
+                    {
+                        int bite = ciphered[2 * i] * 16 + ciphered[2 * i + 1];
+                        combined.Add((byte)bite);
+                    }
+                }
+            }
+            return combined.ToArray();
+        }
+        public static void Interactive()
         {
             while (true)
             {
@@ -136,7 +230,7 @@ namespace FEDS_Font_Tool
         {
             if (args.Length < 1)
             {
-                interactive();
+                Interactive();
             }
             else
             {
@@ -152,14 +246,14 @@ namespace FEDS_Font_Tool
                             break;
                         default:
                             Console.WriteLine("Unrecognizable arguments received. Trying to be interactive.");
-                            interactive();
+                            Interactive();
                             break;
                     }
                 }
                 catch (IndexOutOfRangeException)
                 {
                     Console.WriteLine("Insufficient arguments received. Trying to be interactive.");
-                    interactive();
+                    Interactive();
                 }
                 catch (Exception e)
                 {

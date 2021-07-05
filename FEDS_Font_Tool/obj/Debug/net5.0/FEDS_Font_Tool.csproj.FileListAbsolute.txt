@@ -5,7 +5,6 @@ E:\FEDS_Font_Tool\FEDS_Font_Tool\bin\Debug\net5.0\FEDS_Font_Tool.runtimeconfig.d
 E:\FEDS_Font_Tool\FEDS_Font_Tool\bin\Debug\net5.0\FEDS_Font_Tool.dll
 E:\FEDS_Font_Tool\FEDS_Font_Tool\bin\Debug\net5.0\ref\FEDS_Font_Tool.dll
 E:\FEDS_Font_Tool\FEDS_Font_Tool\bin\Debug\net5.0\FEDS_Font_Tool.pdb
-E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.csprojAssemblyReference.cache
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.GeneratedMSBuildEditorConfig.editorconfig
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.AssemblyInfoInputs.cache
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.AssemblyInfo.cs
@@ -14,3 +13,4 @@ E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.dll
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\ref\FEDS_Font_Tool.dll
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.pdb
 E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.genruntimeconfig.cache
+E:\FEDS_Font_Tool\FEDS_Font_Tool\obj\Debug\net5.0\FEDS_Font_Tool.csproj.AssemblyReference.cache
