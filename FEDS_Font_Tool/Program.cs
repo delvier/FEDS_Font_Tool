@@ -56,22 +56,75 @@ namespace FEDS_Font_Tool
         }
         public static void ToWeirdFont(string path)
         {
-            Console.WriteLine("This is currently not implemented. Thank you.");
-            string filename = Path.GetFileName(path);
+            string filename = Path.GetFileName(path).Replace(".dec","");
             string dirname = Path.GetDirectoryName(path);
             byte[] filedata = File.ReadAllBytes(path);
             uint glyph_size = 0x84;
-            List<byte[]> glyph_info = new List<byte[]>();
-            List<byte[]> glyphs = new List<byte[]>();
+            List<byte[]>[] glyph_info = new List<byte[]>[0x100 - 0x40];
+            List<byte[]>[] glyphs = new List<byte[]>[0x100 - 0x40];
+            for (int i = 0; i < 0x100 - 0x40; i++)
+            {
+                glyph_info[i] = new List<byte[]>();
+                glyphs[i] = new List<byte[]>();
+            }
             for (int i = 0; i < filedata.Length / glyph_size; i++)
             {
-                byte[] each_glyph = (byte[])filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size);
-                glyph_info.Add((byte[])each_glyph.Take(4));
-                glyphs.Add(WeirdGlyphRecipher((byte[])each_glyph.Skip(4)));
+                byte[] each_glyph = filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size).ToArray();
+                byte low_byte = each_glyph[0];
+                glyph_info[low_byte - 0x40].Add(each_glyph.Take(4).ToArray());
+                glyphs[low_byte - 0x40].Add(WeirdGlyphRecipher(each_glyph.Skip(4).ToArray()));
             }
 
-            // todo: how to reconstruct font file with reciphered glyphs?
-            
+            byte[] part0 = new byte[0x20];
+            byte[] part1 = new byte[0x300]; //pointers by lower bytes
+            List<byte> part2_tmp = new List<byte>(); //data for glyphs
+            List<byte> part3_tmp = new List<byte>(); //glyphs
+            List<byte> part4_tmp = new List<byte>(); //pointers to pointers
+            for (int i = 0; i < glyph_info.Length; i++)
+            {
+                if (glyph_info[i].Count != 0)
+                {
+                    Array.Copy(BitConverter.GetBytes(0x300 + part2_tmp.Count()), 0, part1, i * 4, 4);
+                    part4_tmp.AddRange(BitConverter.GetBytes(i * 4));
+                    for (int ii = 0; ii < glyph_info[i].Count; ii++)
+                    {
+                        part2_tmp.AddRange(glyph_info[i][ii]);
+                        part2_tmp.AddRange(new byte[] { 0, 0, 0, 0 });
+                    }
+                    part2_tmp.AddRange(new byte[] { 0, 0, 0, 0 }); // separator
+                }
+            }
+            byte[] part2 = part2_tmp.ToArray();
+            for (int i = 0; i < glyphs.Length; i++)
+            {
+                for (int ii = 0; ii < glyph_info[i].Count; ii++)
+                {
+                    int pointer = BitConverter.ToInt32(part1.Skip(i * 4).Take(4).ToArray()) + 8 * ii + 4;
+                    int pos = 0x300 + part2.Count() + part3_tmp.Count();
+                    part4_tmp.AddRange(BitConverter.GetBytes(pointer));
+                    Array.Copy(BitConverter.GetBytes(pos), 0, part2, pointer - 0x300, 4);
+                    part3_tmp.AddRange(glyphs[i][ii]);
+                }
+            }
+            while (part3_tmp.Count % 4 != 0)
+            {
+                part3_tmp.Add((byte)0);
+            }
+            byte[] part3 = part3_tmp.ToArray();
+            byte[] part4 = part4_tmp.ToArray();
+            int length = 0x320 + part2.Length + part3.Length + part4.Length;
+            int part4_ptr = 0x300 + part2.Length + part3.Length;
+            int ptr_no = part4.Length / 4;
+            Array.Copy(BitConverter.GetBytes(length), 0, part0, 0, 4);
+            Array.Copy(BitConverter.GetBytes(part4_ptr), 0, part0, 4, 4);
+            Array.Copy(BitConverter.GetBytes(ptr_no), 0, part0, 8, 4);
+            List<byte> complete = new List<byte>();
+            complete.AddRange(part0);
+            complete.AddRange(part1);
+            complete.AddRange(part2);
+            complete.AddRange(part3);
+            complete.AddRange(part4);
+            File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.enc", complete.ToArray());
         }
         public static uint[] WeirdGlyphDecipher(byte[] filedata, uint pos)
         {
@@ -121,18 +174,19 @@ namespace FEDS_Font_Tool
         }
         public static byte[] WeirdGlyphRecipher(byte[] glyph)
         {
+            //something wrong
             int counter = 0;
             List<bool> transBits = new List<bool>();
             List<int> ciphered = new List<int>();
             List<byte> combined = new List<byte>();
             byte[] fourbits = new byte[256];
 
-            // converting 32-bits to 4-bits
+            // converting 4-bytes to 4-bits
             for (int i = 0; i < glyph.Length / 4; i++)
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    fourbits[i + 8 * j] = (byte)((glyph[i] >> (28 - 4 * j)) % 16);
+                    fourbits[j + 8 * i] = (byte)((BitConverter.ToUInt32(glyph.Skip(4 * i).Take(4).ToArray()) >> (28 - 4 * j)) % 16);
                 }
             }
             for (int i = 0; i < 256; i++)
@@ -150,7 +204,7 @@ namespace FEDS_Font_Tool
                 {
                     if (i > 0) //not on initial position...
                     {
-                        if (fourbits[i - 1] == 0) //... and the preceding pixel is transparent then
+                        if (fourbits[i - 1] == 0 && counter > 0) //... and the preceding pixel is transparent then
                         {
                             transBits.Add(true);
                             ciphered.Add(counter - 1);
@@ -172,6 +226,10 @@ namespace FEDS_Font_Tool
                 if (combined.Count % 5 == 0)
                 {
                     int i = combined.Count / 5;
+                    if (i * 8 >= transBits.Count())
+                    {
+                        break;
+                    }
                     int bite = 0;
                     for (int j = 0; j < 8; j++)
                     {
