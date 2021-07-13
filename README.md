@@ -6,7 +6,7 @@ The Fire Emblem DS Font Tool
 
 ## What does FEDS_Font_Tool Do
 
-Currently, deciphering 4bpp fonts are implemented. The output can be opened with [Crystal Tiles 2](https://www.romhacking.net/utilities/818/), and the tile form is 4bpp GBA, 16×16, 4-byte skipped. Use ``4bpp.pal`` as a predefined palette to see the glyphs clearly.
+Currently, deciphering and reciphering 4bpp fonts are implemented. The output can be opened with [Crystal Tiles 2](https://www.romhacking.net/utilities/818/), and the tile form is 4bpp GBA, 16×16, 4-byte skipped. Use ``4bpp.pal`` as a predefined palette to see the glyphs clearly.
 
 ## File Specs
 

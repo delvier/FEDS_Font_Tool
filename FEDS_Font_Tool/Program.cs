@@ -255,6 +255,16 @@ namespace FEDS_Font_Tool
             }
             return combined.ToArray();
         }
+
+        public static void From2bppFont(string path, int width)
+        {
+            Console.WriteLine("TBA");
+        }
+
+        public static void To2bppFont(string path, int width)
+        {
+            Console.WriteLine("TBA");
+        }
         public static void Interactive()
         {
             while (true)
@@ -262,10 +272,11 @@ namespace FEDS_Font_Tool
                 Console.WriteLine("What do you want? (Ctrl+C to exit)");
                 Console.WriteLine("d: Decipher a 4bpp font file (talk, alpha)");
                 Console.WriteLine("r: Recipher a 4bpp font file");
-                // Console.WriteLine("x: Extract from a 2bpp font file (sys_agb, sys_wars)"); // Code is only written in my local computer; agb is 12x16, wars is 8x16
-                // Console.WriteLine("b: Build a 2bpp font file");
+                Console.WriteLine("x: Extract from a 2bpp font file (sys_agb, sys_wars) -- TBA"); // Code is only written in my local computer; agb is 12x16, wars is 8x16
+                Console.WriteLine("b: Build a 2bpp font file -- TBA");
                 string func = Console.ReadLine();
                 string path;
+                int w;
                 switch (func)
                 {
                     case "d":
@@ -277,6 +288,40 @@ namespace FEDS_Font_Tool
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
                         ToWeirdFont(path);
+                        return;
+                    case "x":
+                        Console.WriteLine("Write down file name or path:");
+                        path = Console.ReadLine().Trim('"');
+                        if (path == "sys_agb")
+                        {
+                            w = 12;
+                        } else if (path == "sys_wars")
+                        {
+                            w = 8;
+                        } else
+                        {
+                            Console.WriteLine("What would be the width of each glyph? (sys_agb is 12, sys_wars is 8)");
+                            w = int.Parse(Console.ReadLine());
+                        }
+                        From2bppFont(path, w);
+                        return;
+                    case "b":
+                        Console.WriteLine("Write down file name or path:");
+                        path = Console.ReadLine().Trim('"');
+                        if (path.Replace(".enc","") == "sys_agb")
+                        {
+                            w = 12;
+                        }
+                        else if (path.Replace(".enc", "") == "sys_wars")
+                        {
+                            w = 8;
+                        }
+                        else
+                        {
+                            Console.WriteLine("What is the width of each glyph? (sys_agb is 12, sys_wars is 8)");
+                            w = int.Parse(Console.ReadLine());
+                        }
+                        From2bppFont(path, w);
                         return;
                     default:
                         Console.WriteLine("Wrong input received. Try again.");
@@ -301,6 +346,12 @@ namespace FEDS_Font_Tool
                             break;
                         case "-r":
                             ToWeirdFont(args[1]);
+                            break;
+                        case "-x":
+                            From2bppFont(args[1], int.Parse(args[2]));
+                            break;
+                        case "-b":
+                            To2bppFont(args[1], int.Parse(args[2]));
                             break;
                         default:
                             Console.WriteLine("Unrecognizable arguments received. Trying to be interactive.");
