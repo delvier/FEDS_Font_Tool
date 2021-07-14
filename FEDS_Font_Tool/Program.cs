@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using DSDecmp.Formats.Nitro;
 
 namespace FEDS_Font_Tool
 {
@@ -256,12 +258,100 @@ namespace FEDS_Font_Tool
             return combined.ToArray();
         }
 
-        public static void From2bppFont(string path, int width)
+        public static void From2bppFont(string path)
         {
-            Console.WriteLine("TBA");
+            string filename = Path.GetFileName(path);
+            string dirname = Path.GetDirectoryName(path);
+            byte[] rawdata = File.ReadAllBytes(path);
+            byte[] filedata;
+            if (rawdata[0] == 0x10 && rawdata.Skip(1).Take(4).SequenceEqual(rawdata.Skip(5).Take(4)))
+            {
+                // This is lz10 compressed.
+                Console.WriteLine("LZ10 decompressing...");
+                MemoryStream dec = new MemoryStream();
+                (new LZ10()).Decompress(new MemoryStream(rawdata), rawdata.Length, dec);
+                filedata = dec.ToArray();
+            } else
+            {
+                filedata = rawdata;
+            }
+            int temp = BitConverter.ToInt32(filedata.Skip(filedata.Length - 4).Take(4).ToArray());
+            int glyph_size;
+            uint skip = 0x20;
+            List<byte> outputdata = new List<byte>();
+            if (temp == 0x2f0)
+            {
+                //fe11 sys_agb
+                glyph_size = 0x34; //incl. header
+                byte[] header = new byte[glyph_size];
+                Array.Copy(Encoding.UTF8.GetBytes("sys_agb"), header, 7);
+                outputdata.AddRange(header);
+                
+                for (int i = 0; i < 0x100 - 0x40; i++)
+                {
+                    int addr = BitConverter.ToInt32(filedata.Skip((int)(skip + i * 4)).Take(4).ToArray());
+                    if (addr == 0)
+                    {
+                        continue;
+                    }
+                    int ii = 0;
+                    while (true)
+                    {
+                        byte[] head = filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(4).ToArray();
+                        if (BitConverter.ToInt32(head) == 0)
+                        {
+                            break;
+                        }
+                        byte[] each_data = new byte[glyph_size];
+                        Array.Copy(filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(glyph_size).ToArray(), each_data, glyph_size);
+                        each_data[2] = (byte)(i + 0x40);
+                        outputdata.AddRange(each_data);
+                        ii++;
+                    }
+                }
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", outputdata.ToArray());
+            }
+            else if (temp == 0x370)
+            {
+                //fe11 sys_wars, fe12 system
+                glyph_size = 0x24;
+                byte[] header = new byte[glyph_size];
+                Array.Copy(Encoding.UTF8.GetBytes("sys_wars"), header, 8);
+                outputdata.AddRange(header);
+                for (int i = 0; i < 0x100 - 0x20; i++)
+                {
+                    int addr = BitConverter.ToInt32(filedata.Skip((int)(skip + i * 4)).Take(4).ToArray());
+                    if (addr == 0)
+                    {
+                        continue;
+                    }
+                    int ii = 0;
+                    while (true)
+                    {
+                        byte[] head = filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(4).ToArray();
+                        if (BitConverter.ToInt32(head) == 0)
+                        {
+                            break;
+                        }
+                        byte[] each_data = new byte[glyph_size];
+                        Array.Copy(filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(glyph_size).ToArray(), each_data, glyph_size);
+                        each_data[2] = (byte)(i + 0x40);
+                        outputdata.AddRange(each_data);
+                        ii++;
+                    }
+                }
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", outputdata.ToArray());
+            }
+            else
+            {
+                //sys
+                glyph_size = 0x34;
+                Console.WriteLine("Unsupported Format.");
+                return;
+            }
         }
 
-        public static void To2bppFont(string path, int width)
+        public static void To2bppFont(string path)
         {
             Console.WriteLine("TBA");
         }
@@ -272,7 +362,7 @@ namespace FEDS_Font_Tool
                 Console.WriteLine("What do you want? (Ctrl+C to exit)");
                 Console.WriteLine("d: Decipher a 4bpp font file (talk, alpha)");
                 Console.WriteLine("r: Recipher a 4bpp font file");
-                Console.WriteLine("x: Extract from a 2bpp font file (sys_agb, sys_wars) -- TBA"); // Code is only written in my local computer; agb is 12x16, wars is 8x16
+                Console.WriteLine("x: Extract from a 2bpp font file (sys*) -- TBA"); // Code is only written in my local computer; sys and agb is 12x16, wars is 8x16
                 Console.WriteLine("b: Build a 2bpp font file -- TBA");
                 string func = Console.ReadLine();
                 string path;
@@ -292,36 +382,12 @@ namespace FEDS_Font_Tool
                     case "x":
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
-                        if (path == "sys_agb")
-                        {
-                            w = 12;
-                        } else if (path == "sys_wars")
-                        {
-                            w = 8;
-                        } else
-                        {
-                            Console.WriteLine("What would be the width of each glyph? (sys_agb is 12, sys_wars is 8)");
-                            w = int.Parse(Console.ReadLine());
-                        }
-                        From2bppFont(path, w);
+                        From2bppFont(path);
                         return;
                     case "b":
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
-                        if (path.Replace(".enc","") == "sys_agb")
-                        {
-                            w = 12;
-                        }
-                        else if (path.Replace(".enc", "") == "sys_wars")
-                        {
-                            w = 8;
-                        }
-                        else
-                        {
-                            Console.WriteLine("What is the width of each glyph? (sys_agb is 12, sys_wars is 8)");
-                            w = int.Parse(Console.ReadLine());
-                        }
-                        From2bppFont(path, w);
+                        From2bppFont(path);
                         return;
                     default:
                         Console.WriteLine("Wrong input received. Try again.");
@@ -348,10 +414,10 @@ namespace FEDS_Font_Tool
                             ToWeirdFont(args[1]);
                             break;
                         case "-x":
-                            From2bppFont(args[1], int.Parse(args[2]));
+                            From2bppFont(args[1]);
                             break;
                         case "-b":
-                            To2bppFont(args[1], int.Parse(args[2]));
+                            To2bppFont(args[1]);
                             break;
                         default:
                             Console.WriteLine("Unrecognizable arguments received. Trying to be interactive.");
