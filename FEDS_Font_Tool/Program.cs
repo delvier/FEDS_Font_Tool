@@ -291,6 +291,7 @@ namespace FEDS_Font_Tool
             List<byte> outputdata = new List<byte>();
             string font_list = "";
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            // are sys_agb and sys used however?
             if (temp == 0x2f0)
             {
                 //fe11 sys_agb
@@ -331,7 +332,7 @@ namespace FEDS_Font_Tool
                 //fe11 sys_wars, fe12 system. CP1252 can be covered
                 glyph_size = 0x24;
                 byte[] header = new byte[glyph_size];
-                Array.Copy(Encoding.UTF8.GetBytes("sys_wars"), header, 8);
+                Array.Copy(Encoding.UTF8.GetBytes("system"), header, 6);
                 outputdata.AddRange(header);
                 for (int i = 0; i < 0x100 - 0x20; i++)
                 {
@@ -367,7 +368,7 @@ namespace FEDS_Font_Tool
             }
             else
             {
-                //sys
+                //fe11 sys
                 glyph_size = 0x34;
                 Console.WriteLine("Unsupported Format.");
                 return;
@@ -376,7 +377,67 @@ namespace FEDS_Font_Tool
 
         public static void To2bppFont(string path)
         {
-            Console.WriteLine("TBA");
+            string filename = Path.GetFileName(path).Replace(".dec", "");
+            string dirname = Path.GetDirectoryName(path);
+            byte[] filedata = File.ReadAllBytes(path);
+            byte[] temp = filedata.TakeWhile(b => b != 0).ToArray();
+            if (Encoding.UTF8.GetString(temp) == "system")
+            {
+                uint glyph_size = 0x24;
+                List<byte[]>[] glyphs = new List<byte[]>[0x100 - 0x20];
+                for (int i = 0; i < 0x100 - 0x20; i++)
+                {
+                    glyphs[i] = new List<byte[]>();
+                }
+                for (int i = 1; i < filedata.Length / glyph_size; i++)
+                {
+                    byte[] each_glyph = filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size).ToArray();
+                    byte low_byte = each_glyph[2];
+                    each_glyph[2] = 0;
+                    glyphs[low_byte - 0x20].Add(each_glyph);
+                }
+
+                byte[] part0 = new byte[0x20];
+                byte[] part1 = new byte[0x380]; //pointers by lower bytes
+                List<byte> part2_tmp = new List<byte>(); //glyphs
+                List<byte> part3_tmp = new List<byte>(); //pointers to pointers
+                for (int i = 0; i < glyphs.Length; i++)
+                {
+                    if (glyphs[i].Count != 0)
+                    {
+                        Array.Copy(BitConverter.GetBytes(0x380 + part2_tmp.Count()), 0, part1, i * 4, 4);
+                        part3_tmp.AddRange(BitConverter.GetBytes(i * 4));
+                        for (int ii = 0; ii < glyphs[i].Count; ii++)
+                        {
+                            part2_tmp.AddRange(glyphs[i][ii]);
+                        }
+                        part2_tmp.AddRange(new byte[] { 0, 0, 0, 0 }); // separator
+                    }
+                }
+                byte[] part2 = part2_tmp.ToArray();
+                byte[] part3 = part3_tmp.ToArray();
+                int length = 0x3a0 + part2.Length + part3.Length;
+                int part3_ptr = 0x380 + part2.Length;
+                int ptr_no = part3.Length / 4;
+                Array.Copy(BitConverter.GetBytes(length), 0, part0, 0, 4);
+                Array.Copy(BitConverter.GetBytes(part3_ptr), 0, part0, 4, 4);
+                Array.Copy(BitConverter.GetBytes(ptr_no), 0, part0, 8, 4);
+                List<byte> complete = new List<byte>();
+                complete.AddRange(part0);
+                complete.AddRange(part1);
+                complete.AddRange(part2);
+                complete.AddRange(part3);
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.enc", complete.ToArray());
+                Console.WriteLine("LZ10 compressing...");
+                MemoryStream comp = new MemoryStream();
+                (new LZ10()).Compress(new MemoryStream(complete.ToArray()), complete.Count(), comp);
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.lz", comp.ToArray());
+            }
+            else
+            {
+                Console.WriteLine($"Unsupported Format: {temp.ToString()}");
+                return;
+            }
         }
         public static void Interactive()
         {
@@ -410,7 +471,7 @@ namespace FEDS_Font_Tool
                     case "b":
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
-                        From2bppFont(path);
+                        To2bppFont(path);
                         return;
                     default:
                         Console.WriteLine("Wrong input received. Try again.");

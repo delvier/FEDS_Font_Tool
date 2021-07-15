@@ -6,18 +6,18 @@ The Fire Emblem DS Font Tool
 
 ## What does FEDS_Font_Tool Do
 
-Currently, de/reciphering 4bpp fonts and deciphering 2bpp fonts (sans FE11's ``fonts/sys``) are implemented. The deciphered output can be opened with [Crystal Tiles 2](https://www.romhacking.net/utilities/818/).
+Currently, de/reciphering 4bpp fonts and 2bpp (``sys_wars`` and ``system``) are implemented. The deciphered output can be opened with [Crystal Tiles 2](https://www.romhacking.net/utilities/818/).
 
-For 4bpp fonts, the tile form is 4bpp GBA, 4-byte skipped, 16×16. Use ``4bpp.pal`` as a predefined palette to see the glyphs clearly.
+For 4bpp fonts, the tile form is 4bpp GBA, 4-byte skipped, 16×16. Use ``4bpp.pal`` as a predefined palette to see the glyphs clearly. In the skipped 4-bytes, the following are written: low byte, high byte, width and null.
 
-For 2bpp fonts, the tile form is 2bpp VB, 4-byte skipped; 8×16 for ``fonts/sys_wars`` from FE11 and ``fonts/system`` from FE12, 12×16 for ``fonts/sys_agb``.
+For aforementioned 2bpp fonts, the tile form is 2bpp VB, 4-byte skipped, 8×16. In the skipped 4-bytes, the following are written: high byte, width, low byte and null.
 
 For convenience, when deciphering, a list (tab-separated) of characters in the source font is created.
 
 ## File Specs
 
-### Alpha and Talk
-The Fire Emblem DS font files, ``fonts/alpha`` and ``fonts/talk``, are weird. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
+### Talk
+The Fire Emblem DS font files, ``fonts/talk`` used for dialogs are weird. ``fonts/alpha`` is written in the same way, but there is likely no need to edit ``alpha``. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
 
 #### Parts
 The first thirty-two bytes are the header for the file as usual, containing total size of the file (4 bytes), location of the pointer list (4 bytes), and the number of pointers (4 bytes). Because of this header, the value of every pointer is the relative address after the header (i.e. from 0x20), including the aforementioned pointer list location on the header. For example, if the physical location of the pointer list is ``0x8020``, it should be written as ``0x8000`` i.e. ``00 80 00 00``.
@@ -53,7 +53,7 @@ When the binary is deciphered, the pixel is drawn by following order on 16-by-16
 The binary is read until 256 pixels are filled, so the size of each glyph may not be divisible by five bytes. For example, ``01 F0`` as the last block of the glyph data is valid, if, say, the first pixel coloured F is the last of 256 pixels.
 
 ##### Colour
-The colours are tones of reds. The below are approximations, except for zero.
+The below table is an example of colour for each half-byte, if the background is dark. Attached ``4bpp.pal`` is a palette implementing it.
 Half-byte | Colour
 ----------|-------
 0x0 | (Transparent)
