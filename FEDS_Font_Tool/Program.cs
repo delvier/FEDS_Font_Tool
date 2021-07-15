@@ -21,6 +21,8 @@ namespace FEDS_Font_Tool
                 lowByteAddr[i] = BitConverter.ToUInt32(filedata.Skip((int)(skip + 4 * i)).Take(4).ToArray());
             }
             byte[] export;
+            string font_list = "";
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             using (MemoryStream ex = new())
             {
                 using (BinaryWriter bw = new(ex))
@@ -34,6 +36,7 @@ namespace FEDS_Font_Tool
                         int j = 0;
                         while (true)
                         {
+                            /*
                             ushort hexCode = BitConverter.ToUInt16(filedata.Skip((int)(skip + lowByteAddr[i] + 8 * j)).Take(2).ToArray());
                             if (hexCode == 0)
                             {
@@ -41,9 +44,16 @@ namespace FEDS_Font_Tool
                             }
                             ushort width = BitConverter.ToUInt16(filedata.Skip((int)(skip + lowByteAddr[i] + 8 * j + 2)).Take(2).ToArray());
                             uint header = (uint)(width * 65536 + hexCode);
+                            */
+                            byte[] head = filedata.Skip((int)(skip + lowByteAddr[i] + 8 * j)).Take(4).ToArray();
+                            if (BitConverter.ToInt32(head) == 0)
+                            {
+                                break;
+                            }
                             uint pos = BitConverter.ToUInt32(filedata.Skip((int)(skip + lowByteAddr[i] + 8 * j + 4)).Take(4).ToArray());
                             uint[] output = WeirdGlyphDecipher(filedata, + pos);
-                            bw.Write(BitConverter.GetBytes(header));
+                            bw.Write(head);
+                            font_list = string.Concat(font_list, $"{BitConverter.ToUInt16(head.Take(2).ToArray()):X}", "\t", Encoding.GetEncoding(932).GetString(head.Take(2).Reverse().ToArray()), "\n");
                             for (int k = 0; k < 32; k++)
                             {
                                 bw.Write(BitConverter.GetBytes(output[k]));
@@ -55,6 +65,7 @@ namespace FEDS_Font_Tool
                 export = ex.ToArray();
             }
             File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", export);
+            File.WriteAllText($"{dirname}{Path.DirectorySeparatorChar}{filename}.txt", font_list);
         }
         public static void ToWeirdFont(string path)
         {
@@ -176,7 +187,6 @@ namespace FEDS_Font_Tool
         }
         public static byte[] WeirdGlyphRecipher(byte[] glyph)
         {
-            //something wrong
             int counter = 0;
             List<bool> transBits = new List<bool>();
             List<int> ciphered = new List<int>();
@@ -279,6 +289,8 @@ namespace FEDS_Font_Tool
             int glyph_size;
             uint skip = 0x20;
             List<byte> outputdata = new List<byte>();
+            string font_list = "";
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             if (temp == 0x2f0)
             {
                 //fe11 sys_agb
@@ -306,14 +318,17 @@ namespace FEDS_Font_Tool
                         Array.Copy(filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(glyph_size).ToArray(), each_data, glyph_size);
                         each_data[2] = (byte)(i + 0x40);
                         outputdata.AddRange(each_data);
+                        byte[] hex_code = { each_data[2], each_data[0] };
+                        font_list = string.Concat(font_list, $"{BitConverter.ToUInt16(hex_code):X}", "\t", Encoding.GetEncoding(932).GetString(hex_code.Reverse().ToArray()), "\n");
                         ii++;
                     }
                 }
                 File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", outputdata.ToArray());
+                File.WriteAllText($"{dirname}{Path.DirectorySeparatorChar}{filename}.txt", font_list);
             }
             else if (temp == 0x370)
             {
-                //fe11 sys_wars, fe12 system
+                //fe11 sys_wars, fe12 system. CP1252 can be covered
                 glyph_size = 0x24;
                 byte[] header = new byte[glyph_size];
                 Array.Copy(Encoding.UTF8.GetBytes("sys_wars"), header, 8);
@@ -335,12 +350,20 @@ namespace FEDS_Font_Tool
                         }
                         byte[] each_data = new byte[glyph_size];
                         Array.Copy(filedata.Skip((int)(skip + addr + ii * glyph_size)).Take(glyph_size).ToArray(), each_data, glyph_size);
-                        each_data[2] = (byte)(i + 0x40);
+                        each_data[2] = (byte)(i + 0x20);
                         outputdata.AddRange(each_data);
+                        byte[] hex_code = { each_data[2], each_data[0] };
+                        if (each_data[0] < 0x40) {
+                            font_list = string.Concat(font_list, $"{BitConverter.ToUInt16(hex_code):X}", "\t", Encoding.GetEncoding(1252).GetString(hex_code.Take(1).ToArray()), "\n");
+                        } else
+                        {
+                            font_list = string.Concat(font_list, $"{BitConverter.ToUInt16(hex_code):X}", "\t", Encoding.GetEncoding(932).GetString(hex_code.Reverse().ToArray()), "\n");
+                        }
                         ii++;
                     }
                 }
                 File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", outputdata.ToArray());
+                File.WriteAllText($"{dirname}{Path.DirectorySeparatorChar}{filename}.txt", font_list);
             }
             else
             {

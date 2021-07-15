@@ -12,13 +12,17 @@ For 4bpp fonts, the tile form is 4bpp GBA, 4-byte skipped, 16×16. Use ``4bpp.pa
 
 For 2bpp fonts, the tile form is 2bpp VB, 4-byte skipped; 8×16 for ``fonts/sys_wars`` from FE11 and ``fonts/system`` from FE12, 12×16 for ``fonts/sys_agb``.
 
+For convenience, when deciphering, a list (tab-separated) of characters in the source font is created.
+
 ## File Specs
 
 ### Alpha and Talk
 The Fire Emblem DS font files, ``fonts/alpha`` and ``fonts/talk``, are weird. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
 
-#### Header
-From ``0x0+20`` to ``0x300+20``, there are pointers of lower bytes pointing the characters. From ``0x300+20``, each character consists of eight bytes, where the first two are the code point of a character, the next two are the width of a rendered glyph (though, the value cannot exceed 16), and the next four are the pointer to the (ciphered) glyph, all of which are stored in little endian. At the end of each same-lower-byte-group block, four bytes of null are placed as a separator. In the end after the glyph data (thus, footer?), there are pointers to every pointers.
+#### Parts
+The first thirty-two bytes are the header for the file as usual, containing total size of the file (4 bytes), location of the pointer list (4 bytes), and the number of pointers (4 bytes). Because of this header, the value of every pointer is the relative address after the header (i.e. from 0x20), including the aforementioned pointer list location on the header. For example, if the physical location of the pointer list is ``0x8020``, it should be written as ``0x8000`` i.e. ``00 80 00 00``.
+
+After the header, the data is separated by four parts. The first part contains the addresses of glyph data lists by low bytes (0x40..0xFF). The second part contains such lists, where those are separated by 32-bit zeros. Each glyph data in a list consists of eight bytes and contains full character code (2 bytes), width (2 bytes) and the location of glyph data (4 bytes). The third part is the glyph data (where the boundary of each glyph may not visible), and the fourth part is the pointer list containing the location of every pointers.
 
 #### Glyph
 In short, each glyph is compressed (or, I would say, ciphered) using some sort of [Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding). The deciphered glyph is of 4bpp format.
@@ -68,3 +72,6 @@ Half-byte | Colour
 0xD | #D0C8C8
 0xE | #E0D8D8
 0xF | #E8E8E8
+
+# Credits
+* DSDecmp - https://github.com/einstein95/dsdecmp
