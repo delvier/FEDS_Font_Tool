@@ -439,18 +439,45 @@ namespace FEDS_Font_Tool
                 return;
             }
         }
+        public static void ClToWinPal(string path)
+        {
+            string filename = Path.GetFileName(path);
+            string dirname = Path.GetDirectoryName(path);
+            byte[] filedata = File.ReadAllBytes(path);
+            if (filedata.Length == 0x200)
+            {
+                byte[] export = new byte[0x418];
+                Array.Copy(Encoding.UTF8.GetBytes("RIFF").ToArray(), export, 4);
+                export[4] = 0x10; export[5] = 4;
+                Array.Copy(Encoding.UTF8.GetBytes("PAL data").ToArray(), 0, export, 8, 8);
+                export[0x15] = 3; export[0x17] = 1;
+                for (int i = 0; i < 256; i++)
+                {
+                    UInt16 fifteen = BitConverter.ToUInt16(filedata.Skip(i * 2).Take(2).ToArray());
+                    export[0x18 + 4 * i + 2] = (byte)((fifteen / 1024) % 32 * 8);
+                    export[0x18 + 4 * i + 1] = (byte)((fifteen / 32) % 32 * 8);
+                    export[0x18 + 4 * i] = (byte)(fifteen % 32 * 8);
+                }
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.pal", export);
+                return;
+            }
+            else
+            {
+                Console.WriteLine($"Unsupported Format.");
+                return;
+            }
+        }
         public static void Interactive()
         {
             while (true)
             {
                 Console.WriteLine("What do you want? (Ctrl+C to exit)");
-                Console.WriteLine("d: Decipher a 4bpp font file (talk, alpha)");
+                Console.WriteLine("d: Decipher a 4bpp font file (talk)");
                 Console.WriteLine("r: Recipher a 4bpp font file");
-                Console.WriteLine("x: Extract from a 2bpp font file (sys*) -- TBA"); // Code is only written in my local computer; sys and agb is 12x16, wars is 8x16
-                Console.WriteLine("b: Build a 2bpp font file -- TBA");
+                Console.WriteLine("x: Extract from a 2bpp font file (sys*)");
+                Console.WriteLine("b: Build a 2bpp font file");
                 string func = Console.ReadLine();
                 string path;
-                int w;
                 switch (func)
                 {
                     case "d":
@@ -472,6 +499,11 @@ namespace FEDS_Font_Tool
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
                         To2bppFont(path);
+                        return;
+                    case "p":
+                        Console.WriteLine("Write down file name or path:");
+                        path = Console.ReadLine().Trim('"');
+                        ClToWinPal(path);
                         return;
                     default:
                         Console.WriteLine("Wrong input received. Try again.");
@@ -502,6 +534,9 @@ namespace FEDS_Font_Tool
                             break;
                         case "-b":
                             To2bppFont(args[1]);
+                            break;
+                        case "-p":
+                            ClToWinPal(args[1]);
                             break;
                         default:
                             Console.WriteLine("Unrecognizable arguments received. Trying to be interactive.");
