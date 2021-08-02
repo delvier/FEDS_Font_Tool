@@ -13,7 +13,16 @@ namespace FEDS_Font_Tool
         {
             string filename = Path.GetFileName(path);
             string dirname = Path.GetDirectoryName(path);
-            byte[] filedata = File.ReadAllBytes(path);
+            byte[] filedata;
+            try
+            {
+                filedata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
             uint skip = 0x20;
             uint[] lowByteAddr = new uint[192];
             for (int i = 0; i < 192; i++)
@@ -71,7 +80,16 @@ namespace FEDS_Font_Tool
         {
             string filename = Path.GetFileName(path).Replace(".dec","");
             string dirname = Path.GetDirectoryName(path);
-            byte[] filedata = File.ReadAllBytes(path);
+            byte[] filedata;
+            try
+            {
+                filedata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
             uint glyph_size = 0x84;
             List<byte[]>[] glyph_info = new List<byte[]>[0x100 - 0x40];
             List<byte[]>[] glyphs = new List<byte[]>[0x100 - 0x40];
@@ -84,20 +102,27 @@ namespace FEDS_Font_Tool
             {
                 byte[] each_glyph = filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size).ToArray();
                 byte low_byte = each_glyph[0];
-                glyph_info[low_byte - 0x40].Add(each_glyph.Take(4).ToArray());
-                glyphs[low_byte - 0x40].Add(WeirdGlyphRecipher(each_glyph.Skip(4).ToArray()));
+                try
+                {
+                    glyph_info[low_byte - 0x40].Add(each_glyph.Take(4).ToArray());
+                    glyphs[low_byte - 0x40].Add(WeirdGlyphRecipher(each_glyph.Skip(4).ToArray()));
+                }
+                catch (IndexOutOfRangeException)
+                {
+                    Console.WriteLine($"Glyph {i} will be omitted. Please check the code point of the glyph.");
+                }
             }
 
             byte[] part0 = new byte[0x20];
             byte[] part1 = new byte[0x300]; //pointers by lower bytes
-            List<byte> part2_tmp = new List<byte>(); //data for glyphs
-            List<byte> part3_tmp = new List<byte>(); //glyphs
-            List<byte> part4_tmp = new List<byte>(); //pointers to pointers
+            List<byte> part2_tmp = new(); //data for glyphs
+            List<byte> part3_tmp = new(); //glyphs
+            List<byte> part4_tmp = new(); //pointers to pointers
             for (int i = 0; i < glyph_info.Length; i++)
             {
                 if (glyph_info[i].Count != 0)
                 {
-                    Array.Copy(BitConverter.GetBytes(0x300 + part2_tmp.Count()), 0, part1, i * 4, 4);
+                    Array.Copy(BitConverter.GetBytes(0x300 + part2_tmp.Count), 0, part1, i * 4, 4);
                     part4_tmp.AddRange(BitConverter.GetBytes(i * 4));
                     for (int ii = 0; ii < glyph_info[i].Count; ii++)
                     {
@@ -113,7 +138,7 @@ namespace FEDS_Font_Tool
                 for (int ii = 0; ii < glyph_info[i].Count; ii++)
                 {
                     int pointer = BitConverter.ToInt32(part1.Skip(i * 4).Take(4).ToArray()) + 8 * ii + 4;
-                    int pos = 0x300 + part2.Count() + part3_tmp.Count();
+                    int pos = 0x300 + part2.Length + part3_tmp.Count;
                     part4_tmp.AddRange(BitConverter.GetBytes(pointer));
                     Array.Copy(BitConverter.GetBytes(pos), 0, part2, pointer - 0x300, 4);
                     part3_tmp.AddRange(glyphs[i][ii]);
@@ -131,7 +156,7 @@ namespace FEDS_Font_Tool
             Array.Copy(BitConverter.GetBytes(length), 0, part0, 0, 4);
             Array.Copy(BitConverter.GetBytes(part4_ptr), 0, part0, 4, 4);
             Array.Copy(BitConverter.GetBytes(ptr_no), 0, part0, 8, 4);
-            List<byte> complete = new List<byte>();
+            List<byte> complete = new();
             complete.AddRange(part0);
             complete.AddRange(part1);
             complete.AddRange(part2);
@@ -188,9 +213,9 @@ namespace FEDS_Font_Tool
         public static byte[] WeirdGlyphRecipher(byte[] glyph)
         {
             int counter = 0;
-            List<bool> transBits = new List<bool>();
-            List<int> ciphered = new List<int>();
-            List<byte> combined = new List<byte>();
+            List<bool> transBits = new();
+            List<int> ciphered = new();
+            List<byte> combined = new();
             byte[] fourbits = new byte[256];
 
             // converting 4-bytes to 4-bits
@@ -238,7 +263,7 @@ namespace FEDS_Font_Tool
                 if (combined.Count % 5 == 0)
                 {
                     int i = combined.Count / 5;
-                    if (i * 8 >= transBits.Count())
+                    if (i * 8 >= transBits.Count)
                     {
                         break;
                     }
@@ -272,13 +297,22 @@ namespace FEDS_Font_Tool
         {
             string filename = Path.GetFileName(path);
             string dirname = Path.GetDirectoryName(path);
-            byte[] rawdata = File.ReadAllBytes(path);
+            byte[] rawdata;
+            try
+            {
+                rawdata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
             byte[] filedata;
             if (rawdata[0] == 0x10 && rawdata.Skip(1).Take(4).SequenceEqual(rawdata.Skip(5).Take(4)))
             {
                 // This is lz10 compressed.
                 Console.WriteLine("LZ10 decompressing...");
-                MemoryStream dec = new MemoryStream();
+                MemoryStream dec = new();
                 (new LZ10()).Decompress(new MemoryStream(rawdata), rawdata.Length, dec);
                 filedata = dec.ToArray();
             } else
@@ -288,7 +322,7 @@ namespace FEDS_Font_Tool
             int temp = BitConverter.ToInt32(filedata.Skip(filedata.Length - 4).Take(4).ToArray());
             int glyph_size;
             uint skip = 0x20;
-            List<byte> outputdata = new List<byte>();
+            List<byte> outputdata = new();
             string font_list = "";
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             // are sys_agb and sys used however?
@@ -369,7 +403,7 @@ namespace FEDS_Font_Tool
             else
             {
                 //fe11 sys
-                glyph_size = 0x34;
+                //glyph_size = 0x34;
                 Console.WriteLine("Unsupported Format.");
                 return;
             }
@@ -379,7 +413,16 @@ namespace FEDS_Font_Tool
         {
             string filename = Path.GetFileName(path).Replace(".dec", "");
             string dirname = Path.GetDirectoryName(path);
-            byte[] filedata = File.ReadAllBytes(path);
+            byte[] filedata;
+            try
+            {
+                filedata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
             byte[] temp = filedata.TakeWhile(b => b != 0).ToArray();
             if (Encoding.UTF8.GetString(temp) == "system")
             {
@@ -394,18 +437,25 @@ namespace FEDS_Font_Tool
                     byte[] each_glyph = filedata.Skip((int)(i * glyph_size)).Take((int)glyph_size).ToArray();
                     byte low_byte = each_glyph[2];
                     each_glyph[2] = 0;
-                    glyphs[low_byte - 0x20].Add(each_glyph);
+                    try
+                    {
+                        glyphs[low_byte - 0x20].Add(each_glyph);
+                    }
+                    catch (IndexOutOfRangeException)
+                    {
+                        Console.WriteLine($"Glyph {i} will be omitted. Please check the code point of the glyph.");
+                    }
                 }
 
                 byte[] part0 = new byte[0x20];
                 byte[] part1 = new byte[0x380]; //pointers by lower bytes
-                List<byte> part2_tmp = new List<byte>(); //glyphs
-                List<byte> part3_tmp = new List<byte>(); //pointers to pointers
+                List<byte> part2_tmp = new(); //glyphs
+                List<byte> part3_tmp = new(); //pointers to pointers
                 for (int i = 0; i < glyphs.Length; i++)
                 {
                     if (glyphs[i].Count != 0)
                     {
-                        Array.Copy(BitConverter.GetBytes(0x380 + part2_tmp.Count()), 0, part1, i * 4, 4);
+                        Array.Copy(BitConverter.GetBytes(0x380 + part2_tmp.Count), 0, part1, i * 4, 4);
                         part3_tmp.AddRange(BitConverter.GetBytes(i * 4));
                         for (int ii = 0; ii < glyphs[i].Count; ii++)
                         {
@@ -422,20 +472,20 @@ namespace FEDS_Font_Tool
                 Array.Copy(BitConverter.GetBytes(length), 0, part0, 0, 4);
                 Array.Copy(BitConverter.GetBytes(part3_ptr), 0, part0, 4, 4);
                 Array.Copy(BitConverter.GetBytes(ptr_no), 0, part0, 8, 4);
-                List<byte> complete = new List<byte>();
+                List<byte> complete = new();
                 complete.AddRange(part0);
                 complete.AddRange(part1);
                 complete.AddRange(part2);
                 complete.AddRange(part3);
                 File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.enc", complete.ToArray());
                 Console.WriteLine("LZ10 compressing...");
-                MemoryStream comp = new MemoryStream();
-                (new LZ10()).Compress(new MemoryStream(complete.ToArray()), complete.Count(), comp);
+                MemoryStream comp = new();
+                (new LZ10()).Compress(new MemoryStream(complete.ToArray()), complete.Count, comp);
                 File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.lz", comp.ToArray());
             }
             else
             {
-                Console.WriteLine($"Unsupported Format: {temp.ToString()}");
+                Console.WriteLine($"Unsupported Format: {temp}");
                 return;
             }
         }
@@ -443,29 +493,30 @@ namespace FEDS_Font_Tool
         {
             string filename = Path.GetFileName(path);
             string dirname = Path.GetDirectoryName(path);
-            byte[] filedata = File.ReadAllBytes(path);
-            if (filedata.Length == 0x200)
+            byte[] filedata;
+            try
             {
-                byte[] export = new byte[0x418];
-                Array.Copy(Encoding.UTF8.GetBytes("RIFF").ToArray(), export, 4);
-                export[4] = 0x10; export[5] = 4;
-                Array.Copy(Encoding.UTF8.GetBytes("PAL data").ToArray(), 0, export, 8, 8);
-                export[0x15] = 3; export[0x17] = 1;
-                for (int i = 0; i < 256; i++)
-                {
-                    UInt16 fifteen = BitConverter.ToUInt16(filedata.Skip(i * 2).Take(2).ToArray());
-                    export[0x18 + 4 * i + 2] = (byte)((fifteen / 1024) % 32 * 8);
-                    export[0x18 + 4 * i + 1] = (byte)((fifteen / 32) % 32 * 8);
-                    export[0x18 + 4 * i] = (byte)(fifteen % 32 * 8);
-                }
-                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.pal", export);
+                filedata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
                 return;
             }
-            else
+            byte[] export = new byte[0x18 + 4 * filedata.Length];
+            Array.Copy(Encoding.UTF8.GetBytes("RIFF").ToArray(), export, 4);
+            export[4] = 0x10; export[5] = 4;
+            Array.Copy(Encoding.UTF8.GetBytes("PAL data").ToArray(), 0, export, 8, 8);
+            export[0x15] = 3; export[0x17] = 1;
+            for (int i = 0; i < filedata.Length / 2; i++)
             {
-                Console.WriteLine($"Unsupported Format.");
-                return;
+                ushort fifteen = BitConverter.ToUInt16(filedata.Skip(i * 2).Take(2).ToArray());
+                export[0x18 + 4 * i + 2] = (byte)((fifteen / 1024) % 32 * 8);
+                export[0x18 + 4 * i + 1] = (byte)((fifteen / 32) % 32 * 8);
+                export[0x18 + 4 * i] = (byte)(fifteen % 32 * 8);
             }
+            File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.pal", export);
+            return;
         }
         public static void Interactive()
         {
@@ -516,6 +567,8 @@ namespace FEDS_Font_Tool
             if (args.Length < 1)
             {
                 Interactive();
+                Console.WriteLine("Done. Press any key to exit...");
+                _ = Console.ReadKey(false);
             }
             else
             {
@@ -543,6 +596,7 @@ namespace FEDS_Font_Tool
                             Interactive();
                             break;
                     }
+                    Console.WriteLine("Done.");
                 }
                 catch (IndexOutOfRangeException)
                 {
