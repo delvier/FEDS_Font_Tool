@@ -489,6 +489,80 @@ namespace FEDS_Font_Tool
                 return;
             }
         }
+        public static void AdHocWeirdDec(string path)
+        {
+            string filename = Path.GetFileName(path);
+            string dirname = Path.GetDirectoryName(path);
+            byte[] filedata;
+            try
+            {
+                filedata = File.ReadAllBytes(path);
+            }
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("File not found.");
+                return;
+            }
+            if (filedata[0] == 0x50)
+            {
+                uint skip = 4;
+                uint length = BitConverter.ToUInt16(filedata.Skip(1).Take(2).ToArray());
+                uint[] glyph = new uint[length / 4];
+                int num = 0;
+                int i = 0;
+                while (num < length * 2)
+                {
+                    byte[] block = filedata.Skip((int)(skip + 5 * i)).Take(5).ToArray();
+                    byte isTransparent = block[0];
+                    for (int j = 0; j < 8; j++)
+                    {
+                        int co; // counter or colour
+                        if (j % 2 == 0)
+                        {
+                            co = block[j / 2 + 1] / 16;
+                        }
+                        else
+                        {
+                            co = block[j / 2 + 1] % 16;
+                        }
+                        if (isTransparent % 2 == 0)
+                        {
+                            glyph[num / 8] = (uint)((glyph[num / 8] << 4) + co);
+                            num++;
+                        }
+                        else
+                        {
+                            for (int count = 0; count < co + 1; count++)
+                            {
+                                if (num >= length * 2)
+                                {
+                                    break;
+                                }
+                                glyph[num / 8] <<= 4;
+                                num++;
+                            }
+                        }
+                        if (num >= length * 2)
+                        {
+                            break;
+                        }
+                        isTransparent /= 2;
+                    }
+                    i++;
+                }
+                List<byte> output = new();
+                for (int k = 0; k < glyph.Length; k++)
+                {
+                    output.AddRange(BitConverter.GetBytes(glyph[k]));
+                }
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", output.ToArray());
+            }
+            else
+            {
+                Console.WriteLine($"Unsupported Format: 0x{filedata[0]:X}");
+                return;
+            }
+        }
         public static void ClToWinPal(string path)
         {
             string filename = Path.GetFileName(path);
@@ -527,6 +601,8 @@ namespace FEDS_Font_Tool
                 Console.WriteLine("r: Recipher a 4bpp font file");
                 Console.WriteLine("x: Extract from a 2bpp font file (sys*)");
                 Console.WriteLine("b: Build a 2bpp font file");
+                // Console.WriteLine("a: Decipher a class roll image file");
+                // Console.WriteLine("p: Decipher a palette file");
                 string func = Console.ReadLine();
                 string path;
                 switch (func)
@@ -555,6 +631,11 @@ namespace FEDS_Font_Tool
                         Console.WriteLine("Write down file name or path:");
                         path = Console.ReadLine().Trim('"');
                         ClToWinPal(path);
+                        return;
+                    case "a":
+                        Console.WriteLine("Write down file name or path:");
+                        path = Console.ReadLine().Trim('"');
+                        AdHocWeirdDec(path);
                         return;
                     default:
                         Console.WriteLine("Wrong input received. Try again.");
@@ -587,6 +668,9 @@ namespace FEDS_Font_Tool
                             break;
                         case "-b":
                             To2bppFont(args[1]);
+                            break;
+                        case "-a":
+                            AdHocWeirdDec(args[1]);
                             break;
                         case "-p":
                             ClToWinPal(args[1]);

@@ -17,7 +17,7 @@ For convenience, when deciphering, a list (tab-separated) of characters in the s
 ## File Specs
 
 ### Talk
-The Fire Emblem DS font files, ``fonts/talk`` used for dialogs are weird. ``fonts/alpha`` is written in the same way, but there is likely no need to edit ``alpha``. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
+The Fire Emblem DS font files, ``fonts/talk`` used for dialogs are weird. ``fonts/alpha`` is written in the same way, but there is likely no need to edit ``alpha``. Not related to font files, but some class demo images in ``intro/L*`` and ``intro/S*`` archives, prefixed ``0x50``, use the same format. Though the data is quite complicated to understand, there was not a documentation for that, so I had to decipher for a few days and write a documentation for them.
 
 #### Parts
 The first thirty-two bytes are the header for the file as usual, containing total size of the file (4 bytes), location of the pointer list (4 bytes), and the number of pointers (4 bytes). Because of this header, the value of every pointer is the relative address after the header (i.e. from 0x20), including the aforementioned pointer list location on the header. For example, if the physical location of the pointer list is ``0x8020``, it should be written as ``0x8000`` i.e. ``00 80 00 00``.
