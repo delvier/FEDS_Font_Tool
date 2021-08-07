@@ -557,6 +557,36 @@ namespace FEDS_Font_Tool
                 }
                 File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", output.ToArray());
             }
+            else if (filedata[0] == 0x40)
+            {
+                uint skip = 4;
+                uint length = BitConverter.ToUInt16(filedata.Skip(1).Take(2).ToArray());
+                byte[] glyph = new byte[length];
+                int i = 0;
+                int count;
+                for (int num = 0; num < length; num++)
+                {
+                    if (filedata[skip + i] == 0)
+                    {
+                        i++;
+                        if (filedata[skip + i] >= 0x80)
+                        {
+                            i++;
+                        }
+                        count = filedata[skip + i];
+                        for (int j = 0; j < count + 1; j++)
+                        {
+                            glyph[num + j] = 0;
+                        }
+                        num += count;
+                    } else
+                    {
+                        glyph[num] = filedata[skip + i];
+                    }
+                    i++;
+                }
+                File.WriteAllBytes($"{dirname}{Path.DirectorySeparatorChar}{filename}.dec", glyph);
+            }
             else
             {
                 Console.WriteLine($"Unsupported Format: 0x{filedata[0]:X}");
